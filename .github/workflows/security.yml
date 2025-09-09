@@ -16,14 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-
+      # tfsec CLI
       - name: Install tfsec
         run: |
           curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh \
             | bash -s -- -b /usr/local/bin
           tfsec --version
 
-
+      # Checkov CLI
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -32,10 +32,11 @@ jobs:
       - name: Install Checkov
         run: |
           pip install --upgrade pip
-          pip install checkov
-          checkov --version
+          pip install checkov==3.2.470
+          # --version can fail if .checkov.yaml is invalid; make it non-fatal
+          checkov --version || true
 
-
+      # Run scanners -> produce SARIF
       - name: Run tfsec (SARIF)
         run: tfsec . --format sarif --out tfsec.sarif
         continue-on-error: true
@@ -44,7 +45,7 @@ jobs:
         run: checkov -d . -o sarif --output-file-path checkov.sarif
         continue-on-error: true
 
-
+      # Debug: prove files exist
       - name: Inspect SARIF size & head
         if: always()
         run: |
@@ -52,7 +53,7 @@ jobs:
           echo "---- tfsec.sarif head ----"; head -c 200 tfsec.sarif || true; echo
           echo "---- checkov.sarif head ----"; head -c 200 checkov.sarif || true; echo
 
-
+      # Upload SARIF to Code Scanning
       - name: Upload tfsec SARIF
         if: ${{ hashFiles('tfsec.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v3
