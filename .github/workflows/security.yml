@@ -16,16 +16,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- tfsec ----------
-      - name: Run tfsec (SARIF)
-        uses: aquasecurity/tfsec-action@v1.0.3
+
+      - name: Install tfsec
+        run: |
+          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh \
+            | bash -s -- -b /usr/local/bin
+          tfsec --version
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          working_directory: .
-          additional_args: --format sarif --out tfsec.sarif
+          python-version: '3.x'
+
+      - name: Install Checkov
+        run: |
+          pip install --upgrade pip
+          pip install checkov
+          checkov --version
+
+
+      - name: Run tfsec (SARIF)
+        run: tfsec . --format sarif --out tfsec.sarif
         continue-on-error: true
 
-      - name: Show SARIF files after tfsec
-        run: ls -lh *.sarif || true
+      - name: Run Checkov (SARIF)
+        run: checkov -d . -o sarif --output-file-path checkov.sarif
+        continue-on-error: true
+
+
+      - name: Inspect SARIF size & head
+        if: always()
+        run: |
+          ls -lh *.sarif || true
+          echo "---- tfsec.sarif head ----"; head -c 200 tfsec.sarif || true; echo
+          echo "---- checkov.sarif head ----"; head -c 200 checkov.sarif || true; echo
+
 
       - name: Upload tfsec SARIF
         if: ${{ hashFiles('tfsec.sarif') != '' }}
@@ -33,24 +59,6 @@ jobs:
         with:
           sarif_file: tfsec.sarif
           category: tfsec
-
-            # ---------- Checkov ----------
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install Checkov
-        run: pip install checkov
-
-      - name: Run Checkov (SARIF)
-        run: checkov -d . -o sarif --output-file checkov.sarif --quiet
-        continue-on-error: true
-
-      - name: Inspect SARIF size & head
-        run: |
-          ls -lh checkov.sarif
-          head -c 200 checkov.sarif || true
 
       - name: Upload Checkov SARIF
         if: ${{ hashFiles('checkov.sarif') != '' }}
