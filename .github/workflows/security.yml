@@ -1,7 +1,10 @@
 name: Terraform Security Scans
 
 on:
-  workflow_dispatch:        # run manually from the Actions tab
+  workflow_dispatch:
+  # push:
+  #   branches: [ main ]
+  # pull_request:
 
 jobs:
   security:
@@ -10,7 +13,7 @@ jobs:
       contents: read
       security-events: write
     env:
-      SCAN_DIR: terraform
+      SCAN_DIR: .
 
     steps:
       - name: Checkout
@@ -39,11 +42,21 @@ jobs:
           pip install checkov
           checkov --version || true
 
-      - name: Run Checkov (SARIF)
-        run: checkov -d "$SCAN_DIR" -o sarif --output-file-path checkov.sarif
+      - name: Show files to be scanned
+        run: |
+          echo "Scanning in: $SCAN_DIR"
+          ls -lah "$SCAN_DIR" || true
+          echo "---- recursive sample ----"
+          ls -lahR "$SCAN_DIR" | head -n 200 || true
+
+      - name: Run Checkov (force-write SARIF)
+
+        run: |
+          checkov -d "$SCAN_DIR" -o sarif --soft-fail | tee checkov.sarif > /dev/null
         continue-on-error: true
 
-      - name: Inspect SARIF files
+
+      - name: Inspect SARIF size & head
         if: always()
         run: |
           ls -lh *.sarif || true
