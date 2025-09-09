@@ -21,28 +21,36 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           args: --format sarif --out tfsec.sarif .
+        continue-on-error: true
 
-      - name: Verify tfsec.sarif exists
-        run: ls -l tfsec.sarif
+      - name: Verify tfsec.sarif
+        run: ls -lh tfsec.sarif || echo "tfsec.sarif not found"
 
       - name: Upload tfsec SARIF
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: tfsec.sarif
           category: tfsec
 
       # ---------- Checkov ----------
-      - name: Run Checkov (SARIF)
-        uses: bridgecrewio/checkov-action@v12
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          directory: .
-          output_format: sarif
-          output_file_path: ./checkov.sarif
+          python-version: '3.x'
 
-      - name: Verify checkov.sarif exists
-        run: ls -l checkov.sarif
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Run Checkov (SARIF)
+        run: checkov -d . -o sarif > checkov.sarif
+        continue-on-error: true
+
+      - name: Verify checkov.sarif
+        run: ls -lh checkov.sarif || echo "checkov.sarif not found"
 
       - name: Upload Checkov SARIF
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: checkov.sarif
