@@ -15,11 +15,11 @@ Code scanning results are automatically uploaded to the **GitHub Security tab** 
 
 ## What this proves
 
-✅ I can integrate **IaC security scanning tools** into CI/CD pipelines.
-✅ I can **detect and surface Terraform security issues** (e.g., S3 public access, IAM wildcard policies).
-✅ I can **write custom OPA policies** to enforce specific security/compliance requirements.
-✅ Results are uploaded as **SARIF reports** → visible in GitHub **Security → Code scanning**.
-✅ This workflow demonstrates **DevSecOps maturity** by embedding compliance checks before deployment.
+- I can integrate **IaC security scanning tools** into CI/CD pipelines.
+- I can **detect and surface Terraform security issues** (e.g., S3 public access, IAM wildcard policies).
+- I can **write custom OPA policies** to enforce specific security/compliance requirements.
+- Results are uploaded as **SARIF reports** → visible in GitHub **Security → Code scanning**.
+- This workflow demonstrates **DevSecOps maturity** by embedding compliance checks before deployment.
 
 ---
 
