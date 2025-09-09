@@ -13,7 +13,7 @@ jobs:
       contents: read
       security-events: write
     env:
-      SCAN_DIR: .
+      SCAN_DIR: terraform
 
     steps:
       - name: Checkout
@@ -42,17 +42,9 @@ jobs:
           pip install checkov
           checkov --version || true
 
-      - name: Show files to be scanned
+      - name: Run Checkov (SARIF)
         run: |
-          echo "Scanning in: $SCAN_DIR"
-          ls -lah "$SCAN_DIR" || true
-          echo "---- recursive sample ----"
-          ls -lahR "$SCAN_DIR" | head -n 200 || true
-
-      - name: Run Checkov (force-write SARIF)
-
-        run: |
-          checkov -d "$SCAN_DIR" -o sarif --soft-fail | tee checkov.sarif > /dev/null
+          checkov -d "$SCAN_DIR" -o sarif --soft-fail --output-file-path checkov.sarif
         continue-on-error: true
 
 
