@@ -2,25 +2,28 @@ name: Terraform Security Scans
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
-  security-events: write
+  # push:
+  #   branches: [ main ]
+  # pull_request:
 
 jobs:
   security:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # --- tfsec -----------------------------------------------------------
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.0
+      # ---------- tfsec ----------
+      - name: Run tfsec (SARIF)
+        uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          format: sarif
-          output_file: tfsec.sarif
+          args: --format sarif --out tfsec.sarif .
+
+      - name: Verify tfsec.sarif exists
+        run: ls -l tfsec.sarif
 
       - name: Upload tfsec SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -28,14 +31,16 @@ jobs:
           sarif_file: tfsec.sarif
           category: tfsec
 
-
-      # --- Checkov ---------------------------------------------------------
-      - name: Run Checkov
+      # ---------- Checkov ----------
+      - name: Run Checkov (SARIF)
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
           output_format: sarif
-          output_file_path: checkov.sarif
+          output_file_path: ./checkov.sarif
+
+      - name: Verify checkov.sarif exists
+        run: ls -l checkov.sarif
 
       - name: Upload Checkov SARIF
         uses: github/codeql-action/upload-sarif@v3
