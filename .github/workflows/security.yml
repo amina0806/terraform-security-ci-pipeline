@@ -1,10 +1,7 @@
 name: Terraform Security Scans
 
 on:
-  workflow_dispatch:
-  # push:
-  #   branches: [ main ]
-  # pull_request:
+  workflow_dispatch:        # run manually from the Actions tab
 
 jobs:
   security:
@@ -12,18 +9,25 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    env:
+      SCAN_DIR: terraform
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # tfsec CLI
+
       - name: Install tfsec
         run: |
           curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh \
             | bash -s -- -b /usr/local/bin
           tfsec --version
 
-      # Checkov CLI
+      - name: Run tfsec (SARIF)
+        run: tfsec "$SCAN_DIR" --format sarif --out tfsec.sarif
+        continue-on-error: true
+
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -31,29 +35,22 @@ jobs:
 
       - name: Install Checkov
         run: |
-          pip install --upgrade pip
-          pip install checkov==3.2.470
-          # --version can fail if .checkov.yaml is invalid; make it non-fatal
+          python -m pip install --upgrade pip
+          pip install checkov
           checkov --version || true
 
-      # Run scanners -> produce SARIF
-      - name: Run tfsec (SARIF)
-        run: tfsec . --format sarif --out tfsec.sarif
-        continue-on-error: true
-
       - name: Run Checkov (SARIF)
-        run: checkov -d . -o sarif --output-file-path checkov.sarif
+        run: checkov -d "$SCAN_DIR" -o sarif --output-file-path checkov.sarif
         continue-on-error: true
 
-      # Debug: prove files exist
-      - name: Inspect SARIF size & head
+      - name: Inspect SARIF files
         if: always()
         run: |
           ls -lh *.sarif || true
           echo "---- tfsec.sarif head ----"; head -c 200 tfsec.sarif || true; echo
           echo "---- checkov.sarif head ----"; head -c 200 checkov.sarif || true; echo
 
-      # Upload SARIF to Code Scanning
+
       - name: Upload tfsec SARIF
         if: ${{ hashFiles('tfsec.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v3
